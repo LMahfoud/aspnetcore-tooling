@@ -3,93 +3,90 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Host;
-using Microsoft.Extensions.Internal;
-using Microsoft.VisualStudio.Editor.Razor;
+using Microsoft.CodeAnalysis.ExternalAccess.Razor;
+using Microsoft.CodeAnalysis.Text;
 
-namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
+namespace Microsoft.CodeAnalysis.Razor.Workspaces
 {
-    [System.Composition.Shared]
-    [ExportMetadata("Extensions", new string[] { "cshtml", "razor", })]
-    [Export(typeof(RazorDynamicFileInfoProvider))]
-    [Export(typeof(IDynamicFileInfoProvider))]
-    internal class DefaultRazorDynamicFileInfoProvider : RazorDynamicFileInfoProvider, IDynamicFileInfoProvider
+    [Shared]
+    [Export(typeof(IRazorDynamicFileInfoProvider))]
+    [Export (typeof(RazorDynamicFileInfoProvider))]
+    internal class DefaultRazorDynamicFileInfoProvider : RazorDynamicFileInfoProvider, IRazorDynamicFileInfoProvider
     {
         private readonly ConcurrentDictionary<Key, Entry> _entries;
         private readonly Func<Key, Entry> _createEmptyEntry;
-        private readonly DocumentServiceProviderFactory _factory;
+        private readonly RazorDocumentServiceProviderFactory _factory;
 
         [ImportingConstructor]
-        public DefaultRazorDynamicFileInfoProvider(DocumentServiceProviderFactory factory)
+        public DefaultRazorDynamicFileInfoProvider(RazorDocumentServiceProviderFactory factory)
         {
-            if (factory == null)
+            if (factory is null)
             {
                 throw new ArgumentNullException(nameof(factory));
             }
-            
-            _factory = factory;
 
+            _factory = factory;
             _entries = new ConcurrentDictionary<Key, Entry>();
             _createEmptyEntry = (key) => new Entry(CreateEmptyInfo(key));
         }
 
         public event EventHandler<string> Updated;
 
-        // Called by us to update entries
-        public override void UpdateFileInfo(ProjectSnapshot projectSnapshot, DocumentSnapshot document)
+        public override void UpdateFileInfo(string projectFilePath, DynamicDocumentContainer documentContainer)
         {
-            if (projectSnapshot == null)
+            if (projectFilePath == null)
             {
-                throw new ArgumentNullException(nameof(projectSnapshot));
+                throw new ArgumentNullException(nameof(projectFilePath));
             }
 
-            if (document == null)
+            if (documentContainer == null)
             {
-                throw new ArgumentNullException(nameof(document));
+                throw new ArgumentNullException(nameof(documentContainer));
             }
 
             // There's a possible race condition here where we're processing an update
             // and the project is getting unloaded. So if we don't find an entry we can
             // just ignore it.
-            var key = new Key(projectSnapshot.FilePath, document.FilePath);
+            var key = new Key(projectFilePath, documentContainer.FilePath);
             if (_entries.TryGetValue(key, out var entry))
             {
                 lock (entry.Lock)
                 {
-                    entry.Current = CreateInfo(key, document);
+                    entry.Current = CreateInfo(key, documentContainer);
                 }
 
-                Updated?.Invoke(this, document.FilePath);
+                Updated?.Invoke(this, documentContainer.FilePath);
             }
         }
 
         // Called by us when a document opens in the editor
-        public override void SuppressDocument(ProjectSnapshot project, DocumentSnapshot document)
+        public override void SuppressDocument(string projectFilePath, string documentFilePath)
         {
-            if (project == null)
+            if (projectFilePath == null)
             {
-                throw new ArgumentNullException(nameof(project));
+                throw new ArgumentNullException(nameof(projectFilePath));
             }
 
-            if (document == null)
+            if (documentFilePath == null)
             {
-                throw new ArgumentNullException(nameof(document));
+                throw new ArgumentNullException(nameof(documentFilePath));
             }
 
             // There's a possible race condition here where we're processing an update
             // and the project is getting unloaded. So if we don't find an entry we can
             // just ignore it.
-            var key = new Key(project.FilePath, document.FilePath);
+            var key = new Key(projectFilePath, documentFilePath);
             if (_entries.TryGetValue(key, out var entry))
             {
                 var updated = false;
                 lock (entry.Lock)
                 {
-                    if (entry.Current.TextLoader is GeneratedDocumentTextLoader)
+                    if (!(entry.Current.TextLoader is EmptyTextLoader))
                     {
                         updated = true;
                         entry.Current = CreateEmptyInfo(key);
@@ -98,12 +95,12 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 
                 if (updated)
                 {
-                    Updated?.Invoke(this, document.FilePath);
+                    Updated?.Invoke(this, documentFilePath);
                 }
             }
         }
 
-        public Task<DynamicFileInfo> GetDynamicFileInfoAsync(ProjectId projectId, string projectFilePath, string filePath, CancellationToken cancellationToken)
+        public Task<RazorDynamicFileInfo> GetDynamicFileInfoAsync(ProjectId projectId, string projectFilePath, string filePath, CancellationToken cancellationToken)
         {
             if (projectFilePath == null)
             {
@@ -133,22 +130,22 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             }
 
             var key = new Key(projectFilePath, filePath);
-            _entries.TryRemove(key, out var entry);
+            _entries.TryRemove(key, out _);
             return Task.CompletedTask;
         }
 
-        private DynamicFileInfo CreateEmptyInfo(Key key)
+        private RazorDynamicFileInfo CreateEmptyInfo(Key key)
         {
             var filename = Path.ChangeExtension(key.FilePath, ".g.cs");
             var textLoader = new EmptyTextLoader(filename);
-            return new DynamicFileInfo(filename, SourceCodeKind.Regular, textLoader, _factory.CreateEmpty());
+            return new RazorDynamicFileInfo(filename, SourceCodeKind.Regular, textLoader, _factory.CreateEmpty());
         }
 
-        private DynamicFileInfo CreateInfo(Key key, DocumentSnapshot document)
+        private RazorDynamicFileInfo CreateInfo(Key key, DynamicDocumentContainer documentContainer)
         {
             var filename = Path.ChangeExtension(key.FilePath, ".g.cs");
-            var textLoader = new GeneratedDocumentTextLoader(document, filename);
-            return new DynamicFileInfo(filename, SourceCodeKind.Regular, textLoader, _factory.Create(document));
+            var textLoader = documentContainer.GetTextLoader(filename);
+            return new RazorDynamicFileInfo(filename, SourceCodeKind.Regular, textLoader, _factory.Create(documentContainer));
         }
 
         // Using a separate handle to the 'current' file info so that can allow Roslyn to send
@@ -156,9 +153,9 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         public class Entry
         {
             // Can't ever be null for thread-safety reasons
-            private DynamicFileInfo _current;
+            private RazorDynamicFileInfo _current;
 
-            public Entry(DynamicFileInfo current)
+            public Entry(RazorDynamicFileInfo current)
             {
                 if (current == null)
                 {
@@ -169,7 +166,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
                 Lock = new object();
             }
 
-            public DynamicFileInfo Current
+            public RazorDynamicFileInfo Current
             {
                 get => _current;
                 set
@@ -219,10 +216,29 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 
             public override int GetHashCode()
             {
-                var hash = new HashCodeCombiner();
-                hash.Add(ProjectFilePath, FilePathComparer.Instance);
-                hash.Add(FilePath, FilePathComparer.Instance);
+                var hash = 17;
+                hash *= 23 + FilePathComparer.Instance.GetHashCode(ProjectFilePath ?? string.Empty);
+                hash *= 23 + FilePathComparer.Instance.GetHashCode(FilePath ?? string.Empty);
                 return hash;
+            }
+        }
+
+        private class EmptyTextLoader : TextLoader
+        {
+            private readonly string _filePath;
+            private readonly VersionStamp _version;
+
+            public EmptyTextLoader(string filePath)
+            {
+                _filePath = filePath;
+                _version = VersionStamp.Default; // Version will never change so this can be reused.
+            }
+
+            public override Task<TextAndVersion> LoadTextAndVersionAsync(Workspace workspace, DocumentId documentId, CancellationToken cancellationToken)
+            {
+                // Providing an encoding here is important for debuggability. Without this edit-and-continue
+                // won't work for projects with Razor files.
+                return Task.FromResult(TextAndVersion.Create(SourceText.From("", Encoding.UTF8), _version, _filePath));
             }
         }
     }
