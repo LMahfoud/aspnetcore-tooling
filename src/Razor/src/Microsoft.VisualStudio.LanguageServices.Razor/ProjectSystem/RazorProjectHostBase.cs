@@ -7,14 +7,12 @@ using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.Composition;
 using Microsoft.VisualStudio.LanguageServices;
-using Microsoft.VisualStudio.LanguageServices.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
 
 namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 {
@@ -25,7 +23,11 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 
         private ProjectSnapshotManagerBase _projectManager;
         private HostProject _current;
-        private Dictionary<string, HostDocument> _currentDocuments;
+        private readonly Dictionary<string, HostDocument> _currentDocuments;
+        private readonly JsonSerializer _serializer = new JsonSerializer()
+        {
+            Formatting = Newtonsoft.Json.Formatting.Indented
+        };
 
         public RazorProjectHostBase(
             IUnconfiguredProjectCommonServices commonServices,
@@ -92,6 +94,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         protected override Task InitializeCoreAsync(CancellationToken cancellationToken)
         {
             CommonServices.UnconfiguredProject.ProjectRenaming += UnconfiguredProject_ProjectRenaming;
+            CommonServices.ActiveConfiguredProject.ProjectChangedSynchronous += ProjectManager_Changed;
 
             return Task.CompletedTask;
         }
@@ -193,6 +196,11 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             _current = project;
         }
 
+        private void ProjectManager_Changed(object sender, EventArgs e)
+        {
+            SerializeToFile(Current);
+        }
+
         protected void AddDocumentUnsafe(HostDocument document)
         {
             var projectManager = GetProjectManager();
@@ -221,7 +229,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 
             foreach (var kvp in _currentDocuments)
             {
-                _projectManager.DocumentRemoved(_current, kvp.Value);
+                projectManager.DocumentRemoved(_current, kvp.Value);
             }
 
             _currentDocuments.Clear();
@@ -247,6 +255,20 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         Task IProjectDynamicLoadComponent.UnloadAsync()
         {
             return DisposeAsync();
+        }
+
+        private void SerializeToFile(HostProject hostProject)
+        {
+            var publishPath = GetProjectRazorFilePath(hostProject.FilePath);
+
+            var fileInfo = new FileInfo(publishPath);
+            using var writer = fileInfo.CreateText();
+            _serializer.Serialize(writer, hostProject);
+        }
+
+        private string GetProjectRazorFilePath(string projectPath)
+        {
+            return Path.Combine(projectPath, "project.razor.json");
         }
 
         private async Task UnconfiguredProject_ProjectRenaming(object sender, ProjectRenamedEventArgs args)

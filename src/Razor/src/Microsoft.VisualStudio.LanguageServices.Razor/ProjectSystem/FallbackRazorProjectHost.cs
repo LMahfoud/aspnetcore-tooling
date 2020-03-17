@@ -256,14 +256,12 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         {
             try
             {
-                using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                using (var reader = new PEReader(stream))
-                {
-                    var metadataReader = reader.GetMetadataReader();
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new PEReader(stream);
+                var metadataReader = reader.GetMetadataReader();
 
-                    var assemblyDefinition = metadataReader.GetAssemblyDefinition();
-                    return assemblyDefinition.Version;
-                }
+                var assemblyDefinition = metadataReader.GetAssemblyDefinition();
+                return assemblyDefinition.Version;
             }
             catch
             {

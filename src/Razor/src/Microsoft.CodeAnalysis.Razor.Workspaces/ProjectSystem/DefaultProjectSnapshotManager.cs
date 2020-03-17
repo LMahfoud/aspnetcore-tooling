@@ -506,11 +506,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         {
             _foregroundDispatcher.AssertForegroundThread();
 
-            var handler = Changed;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            Changed?.Invoke(this, e);
         }
 
         private class Entry

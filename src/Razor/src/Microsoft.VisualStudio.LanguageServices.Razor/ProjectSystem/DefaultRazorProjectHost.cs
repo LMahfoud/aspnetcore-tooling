@@ -7,17 +7,14 @@ using System.Collections.Immutable;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.AspNetCore.Razor.Language;
-using Microsoft.AspNetCore.Razor.Language.Components;
-using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
-using Microsoft.VisualStudio.TextManager.Interop;
+using Newtonsoft.Json;
 using Item = System.Collections.Generic.KeyValuePair<string, System.Collections.Immutable.IImmutableDictionary<string, string>>;
 
 namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
@@ -83,7 +80,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         {
             await base.DisposeCoreAsync(initialized).ConfigureAwait(false);
 
-            if (initialized)
+            if (initialized && _subscription != null)
             {
                 _subscription.Dispose();
             }
@@ -174,7 +171,6 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             return true;
         }
 
-
         // Internal for testing
         internal static bool TryGetDefaultConfiguration(
             IImmutableDictionary<string, IProjectRuleSnapshot> state,
@@ -240,7 +236,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         {
             if (!state.TryGetValue(Rules.RazorConfiguration.PrimaryDataSourceItemType, out var configurationState))
             {
-                configurationItem = default(Item);
+                configurationItem = default;
                 return false;
             }
 
@@ -254,7 +250,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
                 }
             }
 
-            configurationItem = default(Item);
+            configurationItem = default;
             return false;
         }
 
@@ -321,13 +317,11 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             rootNamespace = rootNamespaceValue;
             return true;
         }
-        
+
         private HostDocument[] GetCurrentDocuments(IProjectSubscriptionUpdate update)
         {
-            IProjectRuleSnapshot rule = null;
-
             var documents = new List<HostDocument>();
-            if (update.CurrentState.TryGetValue(Rules.RazorComponentWithTargetPath.SchemaName, out rule))
+            if (update.CurrentState.TryGetValue(Rules.RazorComponentWithTargetPath.SchemaName, out var rule))
             {
                 foreach (var kvp in rule.Items)
                 {
@@ -362,10 +356,8 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
 
         private HostDocument[] GetChangedAndRemovedDocuments(IProjectSubscriptionUpdate update)
         {
-            IProjectChangeDescription rule = null;
-
             var documents = new List<HostDocument>();
-            if (update.ProjectChanges.TryGetValue(Rules.RazorComponentWithTargetPath.SchemaName, out rule))
+            if (update.ProjectChanges.TryGetValue(Rules.RazorComponentWithTargetPath.SchemaName, out var rule))
             {
                 foreach (var key in rule.Difference.RemovedItems.Concat(rule.Difference.ChangedItems))
                 {

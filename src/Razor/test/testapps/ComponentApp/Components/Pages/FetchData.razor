@@ -25,10 +25,12 @@ else
             @foreach (var forecast in forecasts)
             {
                 <tr>
+                    <td>Stuff</td>
                     <td>@forecast.Date.ToShortDateString()</td>
                     <td>@forecast.TemperatureC</td>
                     <td>@forecast.TemperatureF</td>
                     <td>@forecast.Summary</td>
+                    <td>Add some junk</td>
                 </tr>
             }
         </tbody>
