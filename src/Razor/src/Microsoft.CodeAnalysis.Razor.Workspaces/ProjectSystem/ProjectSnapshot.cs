@@ -39,5 +39,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         /// <param name="document">The document.</param>
         /// <returns>A list of related documents.</returns>
         public abstract IEnumerable<DocumentSnapshot> GetRelatedDocuments(DocumentSnapshot document);
+
+        public abstract object Lock { get; }
     }
 }

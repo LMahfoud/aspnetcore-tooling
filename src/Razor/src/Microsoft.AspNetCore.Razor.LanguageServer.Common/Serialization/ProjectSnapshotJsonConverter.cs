@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.Razor.LanguageServer.Common.Serialization
 {
-    internal class ProjectSnapshotJsonConverter : JsonConverter
+    public class ProjectSnapshotJsonConverter : JsonConverter
     {
         public static readonly ProjectSnapshotJsonConverter Instance = new ProjectSnapshotJsonConverter();
 

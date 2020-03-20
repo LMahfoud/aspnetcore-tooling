@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Razor.Language;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
-using Newtonsoft.Json;
 using Item = System.Collections.Generic.KeyValuePair<string, System.Collections.Immutable.IImmutableDictionary<string, string>>;
 
 namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
@@ -27,6 +26,10 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
     [Export(ExportContractNames.Scopes.UnconfiguredProject, typeof(IProjectDynamicLoadComponent))]
     internal class DefaultRazorProjectHost : RazorProjectHostBase
     {
+        internal const string BaseIntermediateOutputPathPropertyName = "BaseIntermediateOutputPath";
+        internal const string IntermediateOutputPathPropertyName = "IntermediateOutputPath";
+        internal const string MSBuildProjectDirectoryPropertyName = "MSBuildProjectDirectory";
+
         private const string ConfigurationGeneralSchemaName = "ConfigurationGeneral";
         private const string RootNamespaceProperty = "RootNamespace";
         private IDisposable _subscription;
@@ -101,7 +104,14 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
                     if (TryGetConfiguration(update.Value.CurrentState, out var configuration))
                     {
                         TryGetRootNamespace(update.Value.CurrentState, out var rootNamespace);
+
                         var hostProject = new HostProject(CommonServices.UnconfiguredProject.FullPath, configuration, rootNamespace);
+
+                        if (TryGetIntermediateOutputPath(update.Value.CurrentState, out var intermediatePath))
+                        {
+                            var projectRazorJson = Path.Combine(intermediatePath, "project.razor.json");
+                            SetPublishFilePath(hostProject.FilePath, projectRazorJson);
+                        }
 
                         // We need to deal with the case where the project was uninitialized, but now
                         // is valid for Razor. In that case we might have previously seen all of the documents
@@ -270,7 +280,7 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         // Internal for testing
         internal static bool TryGetExtensions(
             string[] extensionNames,
-            IImmutableDictionary<string, IProjectRuleSnapshot> state, 
+            IImmutableDictionary<string, IProjectRuleSnapshot> state,
             out ProjectSystemRazorExtension[] extensions)
         {
             // The list of extensions might not be present, because the configuration may not have any.
@@ -394,6 +404,41 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             }
 
             return documents.ToArray();
+        }
+
+        // Internal for testing
+        internal static bool TryGetIntermediateOutputPath(
+            IImmutableDictionary<string, IProjectRuleSnapshot> state,
+            out string path)
+        {
+            if (!state.TryGetValue(ConfigurationGeneralSchemaName, out var rule))
+            {
+                path = null;
+                return false;
+            }
+
+            if (!rule.Properties.TryGetValue(BaseIntermediateOutputPathPropertyName, out var baseIntermediateOutputPathValue))
+            {
+                path = null;
+                return false;
+            }
+
+            if (!rule.Properties.TryGetValue(IntermediateOutputPathPropertyName, out var intermediateOutputPathValue))
+            {
+                path = null;
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(intermediateOutputPathValue) || string.IsNullOrEmpty(baseIntermediateOutputPathValue))
+            {
+                path = null;
+                return false;
+            }
+            var basePath = new DirectoryInfo(baseIntermediateOutputPathValue).Parent;
+            var joinedPath = Path.Combine(basePath.FullName, intermediateOutputPathValue);
+
+            path = joinedPath;
+            return true;
         }
     }
 }
