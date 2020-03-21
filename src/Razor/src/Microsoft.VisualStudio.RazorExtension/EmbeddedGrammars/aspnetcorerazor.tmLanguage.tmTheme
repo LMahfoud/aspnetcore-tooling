@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>name</key>
+    <string>Razor TextMate Theme</string>
+    <key>settings</key>
+    <array>
+
+      <!-- Begin General -->
+
+      <dict>
+        <key>scope</key>
+        <string>string - meta.attribute, punctuation.definition.string, punctuation.definition.template-expression, constant.character.escape, constant.regexp, markup.heading</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>string</string>
+        </dict>
+      </dict>
+
+      <dict>
+        <key>scope</key>
+        <string>invalid</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>Error</string>
+        </dict>
+      </dict>
+
+      <!-- End General -->
+
+      <!-- Begin Razor specific colorization -->
+
+      <dict>
+        <key>scope</key>
+        <string>keyword.control.cshtml.transition, keyword.control.razor.directive</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>HTML Server-Side Script</string>
+        </dict>
+      </dict>
+
+      <!-- End Razor specific colorization -->
+
+      <!-- Begin HTML specific colorization -->
+
+      <!-- [<]a[>] href[=]"Hello"> -->
+      <dict>
+        <key>scope</key>
+        <string>punctuation.definition.tag, punctuation.separator.key-value.html</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>HTML Operator</string>
+        </dict>
+      </dict>
+
+      <!-- <[a]> href="Hello"> -->
+      <dict>
+        <key>scope</key>
+        <string>entity.name.tag</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>HTML Element Name</string>
+        </dict>
+      </dict>
+
+      <!-- <a> [href]="Hello"> -->
+      <dict>
+        <key>scope</key>
+        <string>entity.other.attribute-name</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>HTML Attribute Name</string>
+        </dict>
+      </dict>
+
+      <!-- <a> href=["Hello"]> -->
+      <dict>
+        <key>scope</key>
+        <string>meta.attribute</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>HTML Attribute Value</string>
+        </dict>
+      </dict>
+
+      <!-- End HTML specific colorization -->
+
+      <!-- Begin C# specific colorization -->
+
+      <dict>
+        <key>scope</key>
+        <string>variable</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>Identifier</string>
+        </dict>
+      </dict>
+
+      <dict>
+        <key>scope</key>
+        <string>constant.language, variable.language, storage.modifier.cs, keyword.type.cs</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>Keyword</string>
+        </dict>
+      </dict>
+
+      <dict>
+        <key>scope</key>
+        <string>storage.type.cs, entity.name.type.class.cs</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>class name</string>
+        </dict>
+      </dict>
+
+      <dict>
+        <key>scope</key>
+        <string>entity.name.function.cs</string>
+        <key>settings</key>
+        <dict>
+          <key>vsclassificationtype</key>
+          <string>method name</string>
+        </dict>
+      </dict>
+
+      <!-- End C# specific colorization -->
+
+    </array>
+    <key>uuid</key>
+    <string>D5935FC5-F04D-4021-83FD-66BCA3F452D2</string>
+  </dict>
+</plist>

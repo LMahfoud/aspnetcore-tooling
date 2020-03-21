@@ -1,15 +1,23 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
+using System.Reflection;
 using Microsoft.CodeAnalysis.Razor.Workspaces;
 
 namespace Microsoft.CodeAnalysis.Host
 {
+    internal class LSPDocumentPropertiesService : DocumentPropertiesService
+    {
+        public override bool DesignTimeOnly => false;
+
+        public override string DiagnosticsLspClientName => "RazorCSharp";
+    }
     internal class RazorDocumentServiceProvider : IDocumentServiceProvider, IDocumentOperationService
     {
         private readonly DynamicDocumentContainer _documentContainer;
         private readonly object _lock;
-
+        private readonly IDocumentService _lspDocumentPropertiesService;
         private ISpanMappingService _spanMappingService;
         private IDocumentExcerptService _excerptService;
 
@@ -23,6 +31,7 @@ namespace Microsoft.CodeAnalysis.Host
             _documentContainer = documentContainer;
 
             _lock = new object();
+            _lspDocumentPropertiesService = new LSPDocumentPropertiesService();
         }
 
         public bool CanApplyChange => false;
@@ -34,6 +43,11 @@ namespace Microsoft.CodeAnalysis.Host
             if (_documentContainer == null)
             {
                 return this as TService;
+            }
+
+            if (typeof(TService) == typeof(DocumentPropertiesService) && _documentContainer.GetMappingService() == null)
+            {
+                return (TService)_lspDocumentPropertiesService;
             }
 
             if (typeof(TService) == typeof(ISpanMappingService))
