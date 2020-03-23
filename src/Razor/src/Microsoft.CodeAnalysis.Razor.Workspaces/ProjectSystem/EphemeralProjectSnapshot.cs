@@ -12,7 +12,6 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
     {
         private readonly HostWorkspaceServices _services;
         private readonly Lazy<RazorProjectEngine> _projectEngine;
-        private readonly object _lock;
 
         public EphemeralProjectSnapshot(HostWorkspaceServices services, string filePath)
         {
@@ -27,7 +26,6 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             }
 
             _services = services;
-            _lock = new object();
             FilePath = filePath;
 
             _projectEngine = new Lazy<RazorProjectEngine>(CreateProjectEngine);
@@ -85,7 +83,5 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
             var factory = _services.GetRequiredService<ProjectSnapshotProjectEngineFactory>();
             return factory.Create(this);
         }
-
-        public override object Lock => _lock;
     }
 }

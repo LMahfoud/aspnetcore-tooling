@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Razor.Language;
@@ -48,8 +47,6 @@ namespace Microsoft.CodeAnalysis.Remote.Razor
 
         private class SerializedProjectSnapshot : ProjectSnapshot
         {
-            private readonly object _lock;
-
             public SerializedProjectSnapshot(string filePath, RazorConfiguration configuration, string rootNamespace)
             {
                 FilePath = filePath;
@@ -57,7 +54,6 @@ namespace Microsoft.CodeAnalysis.Remote.Razor
                 RootNamespace = rootNamespace;
 
                 Version = VersionStamp.Default;
-                _lock = new object();
             }
 
             public override RazorConfiguration Configuration { get; }
@@ -94,8 +90,6 @@ namespace Microsoft.CodeAnalysis.Remote.Razor
             {
                 throw new NotImplementedException();
             }
-
-            public override object Lock => _lock;
         }
     }
 }

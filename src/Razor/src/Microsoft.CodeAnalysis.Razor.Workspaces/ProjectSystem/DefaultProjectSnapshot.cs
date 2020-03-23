@@ -95,7 +95,5 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         {
             return State.ProjectEngine;
         }
-
-        public override object Lock => _lock;
     }
 }

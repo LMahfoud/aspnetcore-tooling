@@ -1066,6 +1066,84 @@ namespace Microsoft.CodeAnalysis.Razor.ProjectSystem
         }
 
         [ForegroundFact]
+        public async Task OnProjectChanged_EnqueuesPublish_OnDocumentAdded()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task OnProjectChanged_EnqueuesPublish_OnDocumentRemoved()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task OnProjectChanged_EnqueuesPublish_OnProjectChanged()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task OnProjectChanged_ProjectRemoved_AfterEnqueuedPublish()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task EnqueuePublish_BatchesPublishRequests()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task Publish_UnsetPublishFilePath_Noops()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task Publish_PublishesToSetPublishFilePath()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task ProjectAdded_PublishesToCorrectFilePath()
+        {
+            // Arrange
+            var changes = new TestProjectChangeDescription[]
+            {
+            };
+
+            var services = new TestProjectSystemServices(TestProjectData.SomeProject.FilePath);
+
+            var host = new DefaultRazorProjectHost(services, Workspace, ProjectManager);
+
+            var projectFilePath = "/path/to/project.csproj";
+            var expectedPublishFilePath = "/path/to/obj/bin/Debug/project.razor.json";
+            host.SetPublishFilePath(projectFilePath, expectedPublishFilePath);
+            var serializationSuccessful = false;
+
+            // Act
+            await RunOnForegroundAsync(() => host.OnProjectChanged(services.CreateUpdate(changes)));
+
+            // Assert
+            Assert.True(serializationSuccessful);
+        }
+
+        [ForegroundFact]
+        public async Task ProjectRemoved_UnSetPublishFilePath_Noops()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
+        public async Task ProjectRemoved_DeletesPublishFile()
+        {
+            throw new NotImplementedException();
+        }
+
+        [ForegroundFact]
         public async Task OnProjectRenamed_RemovesHostProject_CopiesConfiguration()
         {
             // Arrange
