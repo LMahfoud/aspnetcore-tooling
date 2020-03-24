@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Composition;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
